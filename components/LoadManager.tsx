@@ -1,3 +1,4 @@
+
 import React from 'react';
 import InputGroup from './InputGroup';
 
@@ -88,6 +89,10 @@ export const loadCategories: Record<LoadCategory, string> = {
     WIND: 'Вятър (WIND)',
 };
 
+export const loadNomenclature: Record<LoadCategory, string> = { SW: 'g_sw', DL: 'g_dl', LL: 'q_ll', SNOW: 'q_s', WIND: 'q_w' };
+export const pointLoadNomenclature: Record<LoadCategory, string> = { SW: 'P_sw', DL: 'P_dl', LL: 'P_ll', SNOW: 'P_s', WIND: 'P_w' };
+
+
 export const defaultLoadFactors: Record<LoadCategory, number> = {
     SW: 1.35,
     DL: 1.35,
@@ -114,7 +119,7 @@ interface LoadManagerProps {
     loads: (Load | PointLoad)[];
     setLoads: React.Dispatch<React.SetStateAction<any[]>>;
     unit: string;
-    label: string;
+    label?: string;
     beamLength?: number;
 }
 
@@ -141,8 +146,8 @@ const LoadManager: React.FC<LoadManagerProps> = ({ type, loads, setLoads, unit, 
     };
 
     return (
-        <div className="space-y-3 p-4 bg-slate-900/50 rounded-lg h-full flex flex-col">
-            <label className="block text-lg font-semibold text-cyan-400">{label}</label>
+        <div className="space-y-3 p-3 bg-slate-900/50 rounded-lg h-full flex flex-col">
+            {label && <label className="block text-base font-semibold text-cyan-400 mb-2">{label}</label>}
             <div className='space-y-3 flex-grow'>
                 {loads.map((load) => (
                     <div key={load.id} className="space-y-2">
@@ -150,7 +155,7 @@ const LoadManager: React.FC<LoadManagerProps> = ({ type, loads, setLoads, unit, 
                             <select
                                 value={load.category}
                                 onChange={(e) => handleUpdateLoad(load.id, 'category', e.target.value)}
-                                className="w-full bg-slate-700 border-2 border-slate-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition text-sm"
+                                className="w-full bg-slate-700 border-2 border-slate-600 rounded-md py-1.5 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition text-sm"
                             >
                                 {Object.entries(loadCategories).map(([key, name]) => (
                                     <option key={key} value={key}>{name}</option>
@@ -161,7 +166,7 @@ const LoadManager: React.FC<LoadManagerProps> = ({ type, loads, setLoads, unit, 
                                 className="p-2 bg-slate-700 hover:bg-red-500/80 rounded-md text-slate-400 hover:text-white transition-colors duration-200"
                                 aria-label="Премахни натоварване"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                     <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" />
                                 </svg>
                             </button>
@@ -175,9 +180,9 @@ const LoadManager: React.FC<LoadManagerProps> = ({ type, loads, setLoads, unit, 
                                     min="0"
                                     step="0.1"
                                     placeholder="0.00"
-                                    className="w-full bg-slate-700 border-2 border-slate-600 rounded-md py-2 px-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition"
+                                    className="w-full bg-slate-700 border-2 border-slate-600 rounded-md py-1.5 px-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition text-sm"
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">{unit}</span>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">{unit}</span>
                             </div>
                             {type === 'point' && (
                                 <div className="relative">
@@ -189,25 +194,25 @@ const LoadManager: React.FC<LoadManagerProps> = ({ type, loads, setLoads, unit, 
                                         max={beamLength}
                                         step="0.1"
                                         placeholder="a"
-                                        className="w-full bg-slate-700 border-2 border-slate-600 rounded-md py-2 px-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition"
+                                        className="w-full bg-slate-700 border-2 border-slate-600 rounded-md py-1.5 px-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition text-sm"
                                     />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">m</span>
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-sm">m</span>
                                 </div>
                             )}
                         </div>
                     </div>
                 ))}
                  {loads.length === 0 && (
-                    <div className="text-center py-4 text-slate-500 text-sm">Няма добавени товари.</div>
+                    <div className="text-center py-4 text-slate-500 text-xs">Няма добавени товари.</div>
                 )}
             </div>
-            <div className="mt-4 border-t border-slate-700 pt-4">
+            <div className="mt-3 border-t border-slate-700 pt-3">
                  <button
                     onClick={handleAddLoad}
-                    className="w-full flex items-center justify-center gap-2 text-sm bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-300 font-semibold py-2 px-4 rounded-md transition-colors duration-200"
+                    className="w-full flex items-center justify-center gap-2 text-xs bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-300 font-semibold py-2 px-4 rounded-md transition-colors duration-200"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110 2h3V6a1 1 0 011-1z" clipRule="evenodd" />
                     </svg>
                     Добави натоварване
                 </button>

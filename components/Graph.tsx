@@ -18,7 +18,8 @@ interface GraphProps {
 const Graph: React.FC<GraphProps> = ({ title, data, unit, invert = false, onClick, yScaleFactor = 1 }) => {
   const width = 400;
   const height = 250;
-  const padding = { top: 25, right: 40, bottom: 55, left: 60 };
+  // Adjusted padding to remove space for Y-axis labels
+  const padding = { top: 25, right: 20, bottom: 55, left: 20 };
   const viewWidth = width + padding.left + padding.right;
   const viewHeight = height + padding.top + padding.bottom;
   
@@ -73,14 +74,12 @@ const Graph: React.FC<GraphProps> = ({ title, data, unit, invert = false, onClic
     >
       <h3 className="text-sm font-semibold text-cyan-400 mb-2">{title} ({unit})</h3>
       <svg viewBox={`0 0 ${viewWidth} ${viewHeight}`} className="w-full h-auto">
-        {/* Y-Axis */}
-        <line x1={padding.left} y1={padding.top} x2={padding.left} y2={padding.top + height} stroke="#64748b" strokeWidth="1" />
+        {/* Y-Axis Line and labels removed */}
+        
         {/* X-Axis (at y=0) */}
         <line x1={padding.left} y1={yZero} x2={padding.left + width} y2={yZero} stroke="#64748b" strokeWidth="1" />
 
-        {/* Labels */}
-        <text x={padding.left - 8} y={baseScaleY(yMax) + 5} textAnchor="end" fontSize="12" fill="#94a3b8">{formatLabel(yMax)}</text>
-        { (yMin !== 0 || yMax !== 0) && <text x={padding.left - 8} y={baseScaleY(yMin) + 5} textAnchor="end" fontSize="12" fill="#94a3b8">{formatLabel(yMin)}</text> }
+        {/* X-Axis Labels */}
         <text x={padding.left} y={padding.top + height + 20} textAnchor="start" fontSize="12" fill="#94a3b8">0</text>
         <text x={padding.left + width} y={padding.top + height + 20} textAnchor="end" fontSize="12" fill="#94a3b8">{formatLabel(xMax)}</text>
         <text x={(padding.left + width/2)} y={padding.top + height + 38} textAnchor="middle" fontSize="12" fill="#94a3b8">Дължина (m)</text>

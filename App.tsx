@@ -1,28 +1,27 @@
 
 
-
 import React, { useState, useEffect, useRef } from 'react';
-import InputGroup from './components/InputGroup.tsx';
-import ResultCard from './components/ResultCard.tsx';
-import BeamDiagram from './components/BeamDiagram.tsx';
-import Graph from './components/Graph.tsx';
-import CalculationsAccordion from './components/CalculationsAccordion.tsx';
-import LoadManager from './components/LoadManager.tsx';
-import FactorsManager from './components/FactorsManager.tsx';
-import InputSummary from './components/InputSummary.tsx';
-import type { Load, PointLoad, LoadCategory, Point, CombinationResult, EnvelopeResults, AllResults, AppInputs, IndividualLoadEffect } from './components/LoadManager.tsx';
-import { defaultLoadFactors, defaultCombinationFactors, permanentCategories, variableCategories } from './components/LoadManager.tsx';
+// Fix: Removed .tsx extension from component imports to resolve module loading issues.
+import InputGroup from './components/InputGroup';
+import ResultCard from './components/ResultCard';
+import BeamDiagram from './components/BeamDiagram';
+import Graph from './components/Graph';
+import CalculationsAccordion from './components/CalculationsAccordion';
+import LoadManager from './components/LoadManager';
+import FactorsManager from './components/FactorsManager';
+import InputSummary from './components/InputSummary';
+import type { Load, PointLoad, LoadCategory, Point, CombinationResult, EnvelopeResults, AllResults, AppInputs, IndividualLoadEffect } from './components/LoadManager';
+import { defaultLoadFactors, defaultCombinationFactors, permanentCategories, variableCategories, loadNomenclature, pointLoadNomenclature } from './components/LoadManager';
 
 
 const App: React.FC = () => {
   // State for inputs
   const [uniformLoads, setUniformLoads] = useState<Load[]>([
-      { id: `load-${Date.now()}`, category: 'SW', value: '1' },
-      { id: `load-${Date.now()+1}`, category: 'LL', value: '5' }
+      { id: `sw-${Date.now()}`, category: 'SW', value: '0.5' },
+      { id: `dl-${Date.now()+1}`, category: 'DL', value: '0.75' },
+      { id: `snow-${Date.now()+2}`, category: 'SNOW', value: '1.5' },
   ]);
-  const [pointLoads, setPointLoads] = useState<PointLoad[]>([
-      { id: `load-${Date.now()+2}`, category: 'LL', value: '100', a: '3.00' }
-  ]);
+  const [pointLoads, setPointLoads] = useState<PointLoad[]>([]);
   const [length, setLength] = useState<string>('6');
   const [modulus, setModulus] = useState<string>('210');
   const [inertia, setInertia] = useState<string>('500');
@@ -35,6 +34,7 @@ const App: React.FC = () => {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
   const [isFactorsAccordionOpen, setIsFactorsAccordionOpen] = useState(false);
+  const [isPointLoadsOpen, setIsPointLoadsOpen] = useState(false);
   const [deflectionLimitType, setDeflectionLimitType] = useState<'L/200' | 'L/250' | 'none'>('L/200');
   const [deflectionCheck, setDeflectionCheck] = useState<{ status: 'pass' | 'fail' | 'none'; limit: number | null }>({ status: 'none', limit: null });
   const [yScaleFactor, setYScaleFactor] = useState<string>('0.5');
@@ -96,6 +96,7 @@ const App: React.FC = () => {
                 if ('a' in load) {
                     const P = val; const a = parseFloat(load.a); const b = L - a;
                     const RA = (P * b) / L; const RB = (P * a) / L;
+                    const symbol = pointLoadNomenclature[load.category];
                     for (let i = 0; i < points; i++) {
                         const x = x_coords[i];
                         if (x <= a) { s[i].y += RA; m[i].y += RA * x; d[i].y += ((P * b * x) / (6 * E * I * L)) * (L*L - b*b - x*x) * 1000; }
@@ -103,12 +104,13 @@ const App: React.FC = () => {
                     }
                      individualLoadEffects.push({
                         id: load.id, type: 'point', category: load.category, value: P, position: a,
-                        maxMoment: { formula: 'P * a * b / L', substitution: `${P.toFixed(2)} * ${a.toFixed(2)} * ${b.toFixed(2)} / ${L.toFixed(2)}`, result: (P * a * b) / L },
-                        maxShear: { formula: 'max(P*b/L, P*a/L)', substitution: `max(${(RA).toFixed(2)}, ${(RB).toFixed(2)})`, result: Math.max(RA, RB) },
-                        maxDeflection: { formula: 'f(P, a, L, E, I)', substitution: `Изчислено числено`, result: getMaxAbs(d) },
+                        maxMoment: { formula: `${symbol} * a * b / L`, substitution: `${P.toFixed(2)} * ${a.toFixed(2)} * ${b.toFixed(2)} / ${L.toFixed(2)}`, result: (P * a * b) / L },
+                        maxShear: { formula: `max(${symbol}*b/L, ${symbol}*a/L)`, substitution: `max(${(RA).toFixed(2)}, ${(RB).toFixed(2)})`, result: Math.max(RA, RB) },
+                        maxDeflection: { formula: `f(${symbol}, a, L, E, I)`, substitution: `Изчислено числено`, result: getMaxAbs(d) },
                     });
                 } else {
                     const w = val;
+                    const symbol = loadNomenclature[load.category];
                     for (let i = 0; i < points; i++) {
                         const x = x_coords[i];
                         s[i].y += w * (L / 2 - x);
@@ -117,9 +119,9 @@ const App: React.FC = () => {
                     }
                      individualLoadEffects.push({
                         id: load.id, type: 'uniform', category: load.category, value: w,
-                        maxMoment: { formula: 'w * L² / 8', substitution: `${w.toFixed(2)} * ${L.toFixed(2)}² / 8`, result: (w * L**2) / 8 },
-                        maxShear: { formula: 'w * L / 2', substitution: `${w.toFixed(2)} * ${L.toFixed(2)} / 2`, result: (w * L) / 2 },
-                        maxDeflection: { formula: '5 * w * L⁴ / (384 * E * I)', substitution: `5 * ${w.toFixed(2)} * ${L.toFixed(2)}⁴ / (384 * ${E.toExponential(2)} * ${I.toExponential(2)})`, result: (5 * w * L**4) / (384 * E * I) * 1000 },
+                        maxMoment: { formula: `${symbol} * L² / 8`, substitution: `${w.toFixed(2)} * ${L.toFixed(2)}² / 8`, result: (w * L**2) / 8 },
+                        maxShear: { formula: `${symbol} * L / 2`, substitution: `${w.toFixed(2)} * ${L.toFixed(2)} / 2`, result: (w * L) / 2 },
+                        maxDeflection: { formula: `5 * ${symbol} * L⁴ / (384 * E * I)`, substitution: `5 * ${w.toFixed(2)} * ${L.toFixed(2)}⁴ / (384 * ${E.toExponential(2)} * ${I.toExponential(2)})`, result: (5 * w * L**4) / (384 * E * I) * 1000 },
                     });
                 }
 
@@ -157,19 +159,19 @@ const App: React.FC = () => {
             generateCombinations(activeVariableCats, (leadingCat) => {
                 let comboM = baseUlsEffects.momentData.map(p => ({...p}));
                 let comboS = baseUlsEffects.shearData.map(p => ({...p}));
-                let formulaParts = activePermanentCats.map(c => `${factors[c]}*${c}`);
+                let formulaParts = activePermanentCats.map(c => `${factors[c]}*${loadNomenclature[c]}`);
 
                 if (leadingCat !== 'none') {
                     comboM = add(comboM, scale(effectsByCategory.get(leadingCat)!.momentData, factors[leadingCat]));
                     comboS = add(comboS, scale(effectsByCategory.get(leadingCat)!.shearData, factors[leadingCat]));
-                    formulaParts.push(`${factors[leadingCat]}*${leadingCat}`);
+                    formulaParts.push(`${factors[leadingCat]}*${loadNomenclature[leadingCat]}`);
 
                     activeVariableCats.forEach(otherCat => {
                         if (otherCat === leadingCat) return;
                         const factor = factors[otherCat] * combinationFactors[otherCat];
                         comboM = add(comboM, scale(effectsByCategory.get(otherCat)!.momentData, factor));
                         comboS = add(comboS, scale(effectsByCategory.get(otherCat)!.shearData, factor));
-                        formulaParts.push(`${factors[otherCat]}*${combinationFactors[otherCat]}*${otherCat}`);
+                        formulaParts.push(`${factors[otherCat]}*${combinationFactors[otherCat]}*${loadNomenclature[otherCat]}`);
                     });
                 }
                 
@@ -186,17 +188,17 @@ const App: React.FC = () => {
             
             generateCombinations(activeVariableCats, (leadingCat) => {
                 let comboD = baseSlsDeflection.map(p => ({...p}));
-                const formulaParts: string[] = activePermanentCats.map(c => c);
+                const formulaParts: string[] = activePermanentCats.map(c => loadNomenclature[c]);
 
                 if(leadingCat !== 'none'){
                     comboD = add(comboD, effectsByCategory.get(leadingCat)!.deflectionData);
-                    formulaParts.push(leadingCat);
+                    formulaParts.push(loadNomenclature[leadingCat]);
 
                     activeVariableCats.forEach(otherCat => {
                         if (otherCat === leadingCat) return;
                         const factor = combinationFactors[otherCat];
                         comboD = add(comboD, scale(effectsByCategory.get(otherCat)!.deflectionData, factor));
-                        formulaParts.push(`${factor}*${otherCat}`);
+                        formulaParts.push(`${factor}*${loadNomenclature[otherCat]}`);
                     });
                 }
 
@@ -353,9 +355,14 @@ const App: React.FC = () => {
                 } else {
                     throw new Error("Invalid or incomplete data in file.");
                 }
-            } catch (err) {
+            } catch (err: unknown) {
                 console.error("Failed to load file:", err);
-                setError(err instanceof Error ? `Грешка при зареждане на файл: ${err.message}` : "Невалиден файлов формат.");
+                // Fix: Properly handle unknown error type to prevent type errors.
+                if (err instanceof Error) {
+                    setError(`Грешка при зареждане на файл: ${err.message}`);
+                } else {
+                    setError("Невалиден файлов формат.");
+                }
             }
         };
         reader.onerror = () => {
@@ -377,14 +384,14 @@ const App: React.FC = () => {
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-4xl p-4 z-10 bg-gradient-to-t from-slate-900 to-transparent pointer-events-none">
             <div className="flex justify-center pointer-events-auto">
                  {viewMode === 'input' ? (
-                     <button onClick={handleSolve} className="flex items-center gap-3 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-3 px-8 rounded-full shadow-lg shadow-cyan-500/30 transform hover:scale-105 transition-all duration-300">
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+                     <button onClick={handleSolve} className="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-600 text-slate-900 font-bold py-2 px-6 rounded-full shadow-lg shadow-cyan-500/30 transform hover:scale-105 transition-all duration-300">
+                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
                          <span>Реши</span>
                      </button>
                  ) : (
-                     <button onClick={handleEdit} className="flex items-center gap-3 bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transform hover:scale-105 transition-all duration-300">
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
-                         <span>Редактирай данни</span>
+                     <button onClick={handleEdit} className="flex items-center gap-2 bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transform hover:scale-105 transition-all duration-300">
+                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+                         <span>Редактирай</span>
                      </button>
                  )}
             </div>
@@ -393,20 +400,20 @@ const App: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-900 text-slate-200 flex items-center justify-center p-4 font-sans">
-            <div className="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl p-6 md:p-10 space-y-8 transform transition-all duration-500 main-container mb-24"> {/* Add margin bottom for button */}
+            <div className="w-full max-w-4xl bg-slate-800 rounded-2xl shadow-2xl p-5 md:p-6 space-y-6 transform transition-all duration-500 main-container mb-24"> {/* Add margin bottom for button */}
                 
                 {viewMode === 'input' ? (
                     <>
                         <header className="text-center">
-                            <h1 className="text-3xl md:text-4xl font-bold text-cyan-400">Калкулатор за Проста Греда</h1>
-                            <p className="text-slate-400 mt-2">Въведете параметри и товари</p>
+                            <h1 className="text-2xl md:text-3xl font-bold text-cyan-400">Калкулатор за Проста Греда</h1>
+                            <p className="text-slate-400 mt-1">Въведете параметри и товари</p>
                              <div className="flex justify-center gap-4 mt-4">
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
-                                <button onClick={handleSave} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 font-bold py-1 px-3 rounded-lg transition-colors duration-200 text-sm">
+                                <button onClick={handleSave} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 font-bold py-1 px-2 rounded-lg transition-colors duration-200 text-xs">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 16a3.5 3.5 0 01-3.5-3.5V6a1 1 0 012 0v6.5a1.5 1.5 0 103 0V6a1 1 0 012 0v6.5a3.5 3.5 0 01-3.5 3.5zM16.5 6a1 1 0 01-2 0V4.5a1.5 1.5 0 10-3 0V10a1 1 0 11-2 0V4.5A3.5 3.5 0 0113 1a3.5 3.5 0 013.5 3.5V6z" /></svg>
                                     Запази
                                 </button>
-                                <button onClick={handleOpen} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 font-bold py-1 px-3 rounded-lg transition-colors duration-200 text-sm">
+                                <button onClick={handleOpen} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 font-bold py-1 px-2 rounded-lg transition-colors duration-200 text-xs">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" /></svg>
                                     Отвори
                                 </button>
@@ -422,12 +429,33 @@ const App: React.FC = () => {
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 input-grid">
+                        <div className="space-y-4">
                             <LoadManager type="uniform" loads={uniformLoads} setLoads={setUniformLoads} unit="kN/m" label="Равномерно разпределени товари" />
-                            <LoadManager type="point" loads={pointLoads} setLoads={setPointLoads} unit="kN" label="Концентрирани товари" beamLength={safe_L} />
+                            
+                            <div className="bg-slate-900/50 rounded-lg overflow-hidden">
+                                <button
+                                    onClick={() => setIsPointLoadsOpen(!isPointLoadsOpen)}
+                                    className="w-full flex justify-between items-center p-3 text-left font-semibold text-base text-cyan-400 hover:bg-slate-700/50 transition-colors duration-200"
+                                    aria-expanded={isPointLoadsOpen}
+                                    aria-controls="point-loads-details"
+                                >
+                                    <span>Концентрирани товари (опционално)</span>
+                                    <svg className={`w-5 h-5 transform transition-transform duration-300 ${isPointLoadsOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                <div
+                                    id="point-loads-details"
+                                    className={`transition-all duration-500 ease-in-out ${isPointLoadsOpen ? 'max-h-[1000px]' : 'max-h-0'}`}
+                                >
+                                    <div className="border-t border-slate-700">
+                                        <LoadManager type="point" loads={pointLoads} setLoads={setPointLoads} unit="kN" beamLength={safe_L} />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 input-grid">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 input-grid">
                             <InputGroup label="Дължина на гредата (L)" value={length} onChange={e => setLength(e.target.value)} unit="m" showSlider={true} min="1" max="20" step="0.1" />
                             <InputGroup label="Модул на еластичност (E)" value={modulus} onChange={e => setModulus(e.target.value)} unit="GPa" />
                             <InputGroup label="Инерционен момент (I)" value={inertia} onChange={e => setInertia(e.target.value)} unit="cm⁴" />
@@ -446,10 +474,10 @@ const App: React.FC = () => {
                     </>
                 ) : (
                     allResults && !error && (
-                        <div className="space-y-8">
+                        <div className="space-y-6">
                             <div>
-                                <div className="flex justify-center items-center gap-4 mb-6">
-                                    <h2 className="text-2xl font-semibold text-center text-cyan-400">Резултати (Обвивка)</h2>
+                                <div className="flex justify-center items-center gap-4 mb-4">
+                                    <h2 className="text-xl font-semibold text-center text-cyan-400">Резултати (Обвивка)</h2>
                                     <button 
                                         onClick={() => window.print()}
                                         className="print-button-container flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-cyan-400 font-bold py-1 px-3 rounded-lg transition-colors duration-200 text-sm"
@@ -459,23 +487,23 @@ const App: React.FC = () => {
                                         <span>Експорт / Принтирай</span>
                                     </button>
                                 </div>
-                                <div className="mb-6">
+                                <div className="mb-4">
                                     <BeamDiagram 
                                         viewMode="results"
                                         results={allResults.envelope}
                                         length={safe_L}
                                     />
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 results-grid">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 results-grid">
                                     <ResultCard title="Макс. огъващ момент" value={allResults.envelope.moment} unit="kNm" onClick={() => handleCardClick('Макс. огъващ момент')} isExpanded={expandedCard === 'Макс. огъващ момент'} combinationDescription={allResults.envelope.momentDescription} />
                                     <ResultCard title="Макс. срязваща сила" value={allResults.envelope.shear} unit="kN" onClick={() => handleCardClick('Макс. срязваща сила')} isExpanded={expandedCard === 'Макс. срязваща сила'} combinationDescription={allResults.envelope.shearDescription} />
                                     <ResultCard title="Макс. провисване" value={allResults.envelope.deflection} unit="mm" onClick={() => handleCardClick('Макс. провисване')} isExpanded={expandedCard === 'Макс. провисване'} validationStatus={deflectionCheck.status} limitValue={deflectionCheck.limit} combinationDescription={allResults.envelope.deflectionDescription} />
                                 </div>
                             </div>
 
-                            <div className="p-4 bg-slate-900/50 rounded-lg deflection-check-controls">
-                                <h3 className="text-lg font-semibold text-center mb-3 text-cyan-400">Проверка на провисване</h3>
-                                <div className="flex justify-center items-center space-x-4 sm:space-x-6 text-slate-300">
+                            <div className="p-3 bg-slate-900/50 rounded-lg deflection-check-controls">
+                                <h3 className="text-base font-semibold text-center mb-3 text-cyan-400">Проверка на провисване</h3>
+                                <div className="flex justify-center items-center space-x-4 sm:space-x-6 text-slate-300 text-sm">
                                     <label className="flex items-center space-x-2 cursor-pointer"><input type="radio" name="deflectionLimit" value="L/200" checked={deflectionLimitType === 'L/200'} onChange={(e) => setDeflectionLimitType('L/200')} className="w-4 h-4 bg-slate-700 border-slate-600 text-cyan-500 focus:ring-cyan-500 focus:ring-2" /><span>L / 200</span></label>
                                     <label className="flex items-center space-x-2 cursor-pointer"><input type="radio" name="deflectionLimit" value="L/250" checked={deflectionLimitType === 'L/250'} onChange={(e) => setDeflectionLimitType('L/250')} className="w-4 h-4 bg-slate-700 border-slate-600 text-cyan-500 focus:ring-cyan-500 focus:ring-2" /><span>L / 250</span></label>
                                     <label className="flex items-center space-x-2 cursor-pointer"><input type="radio" name="deflectionLimit" value="none" checked={deflectionLimitType === 'none'} onChange={(e) => setDeflectionLimitType('none')} className="w-4 h-4 bg-slate-700 border-slate-600 text-cyan-500 focus:ring-cyan-500 focus:ring-2" /><span>Без проверка</span></label>
@@ -484,11 +512,11 @@ const App: React.FC = () => {
                             
                             <InputSummary inputs={inputs} />
                             
-                            <div className="bg-slate-900/50 rounded-lg p-4 space-y-4">
+                            <div className="bg-slate-900/50 rounded-lg p-3 space-y-3">
                                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                                    <h3 className="text-lg font-semibold text-center sm:text-left text-cyan-400">Графики на усилия и провисване</h3>
+                                    <h3 className="text-base font-semibold text-center sm:text-left text-cyan-400">Графики на усилия и провисване</h3>
                                     <div className="flex items-center space-x-2 w-full sm:w-auto max-w-xs">
-                                        <span className="text-sm text-slate-400">Мащаб Y</span>
+                                        <span className="text-xs text-slate-400">Мащаб Y</span>
                                         <input type="range" min="0.1" max="2" step="0.1" value={yScaleFactor} onChange={(e) => setYScaleFactor(e.target.value)} className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500" />
                                     </div>
                                 </div>
@@ -498,7 +526,7 @@ const App: React.FC = () => {
                                      <Graph {...expandedGraphProps} yScaleFactor={scale} />
                                   </div>
                                 ) : (
-                                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-4 graphs-grid">
+                                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 pt-2 graphs-grid">
                                       <Graph title="Огъващ момент" data={allResults.envelope.momentData} unit="kNm" invert={true} onClick={() => handleCardClick('Макс. огъващ момент')} yScaleFactor={scale} />
                                       <Graph title="Срязваща сила" data={allResults.envelope.shearData} unit="kN" onClick={() => handleCardClick('Макс. срязваща сила')} yScaleFactor={scale} />
                                       <Graph title="Провисване" data={allResults.envelope.deflectionData} unit="mm" invert={true} onClick={() => handleCardClick('Макс. провисване')} yScaleFactor={scale} />

@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import type { Load, PointLoad, LoadCategory, EnvelopeResults } from './LoadManager';
+import { loadNomenclature } from './LoadManager';
 
 interface BeamDiagramProps {
   uniformLoads?: Load[];
@@ -10,7 +11,6 @@ interface BeamDiagramProps {
   viewMode: 'input' | 'results';
 }
 
-const loadNomenclature: Record<LoadCategory, string> = { SW: 'g_sw', DL: 'g_dl', LL: 'q_ll', SNOW: 'q_s', WIND: 'q_w' };
 const loadColors: Record<LoadCategory, string> = { SW: '#a16207', DL: '#64748b', LL: '#ef4444', SNOW: '#38bdf8', WIND: '#2dd4bf' };
 
 const BeamDiagram: React.FC<BeamDiagramProps> = ({ uniformLoads = [], pointLoads = [], length = 6, results = null, viewMode }) => {

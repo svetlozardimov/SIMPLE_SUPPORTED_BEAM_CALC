@@ -18,7 +18,7 @@ const InputGroup: React.FC<InputGroupProps> = ({ label, value, onChange, unit, s
 
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-400 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-slate-400 mb-1">{label}</label>
       <div className="relative">
         <div className="flex items-center">
           <input
@@ -28,9 +28,9 @@ const InputGroup: React.FC<InputGroupProps> = ({ label, value, onChange, unit, s
             min={min}
             step={step}
             placeholder="0.00"
-            className="w-full bg-slate-700 border-2 border-slate-600 rounded-md py-2 px-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition"
+            className="w-full bg-slate-700 border-2 border-slate-600 rounded-md py-1.5 px-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition text-sm"
           />
-          <span className="absolute right-3 text-slate-400 pointer-events-none">{unit}</span>
+          <span className="absolute right-3 text-slate-400 pointer-events-none text-sm">{unit}</span>
         </div>
       </div>
       {showSlider && (
