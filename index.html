@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="bg">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Калкулатор за Проста Греда</title>
+
+    <!-- SEO & Metadata -->
+    <meta name="description" content="Уеб приложение за изчисляване на максимален момент, срязваща сила и провисване в проста греда, подложена на равномерно разпределено натоварване. Въведете параметрите на гредата и натоварването, за да получите незабавни резултати." />
+    <meta name="theme-color" content="#0f172a">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://example.com/"> 
+    <meta property="og:title" content="Калкулатор за Проста Греда">
+    <meta property="og:description" content="Изчислете максимален момент, срязваща сила и провисване в проста греда с равномерно разпределено натоварване.">
+    <meta property="og:image" content="https://example.com/social-image.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://example.com/">
+    <meta property="twitter:title" content="Калкулатор за Проста Греда">
+    <meta property="twitter:description" content="Изчислете максимален момент, срязваща сила и провисване в проста греда с равномерно разпределено натоварване.">
+    <meta property="twitter:image" content="https://example.com/social-image.png">
+
+    <!-- Tailwind CSS (ще се управлява от Vite) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @media print {
+        /* Hide UI elements not meant for the report */
+        body {
+          background-color: white !important;
+        }
+        .print-button-container,
+        header p, /* Hides the subtitle */
+        .beam-diagram,
+        .input-grid,
+        .deflection-check-controls,
+        .scale-controls,
+        .calculations-accordion-toggle {
+          display: none !important;
+        }
+
+        /* Reset container styles for printing */
+        .main-container {
+          box-shadow: none !important;
+          border: none !important;
+          padding: 1rem !important; /* Add some padding for print margins */
+          border-radius: 0 !important;
+        }
+        
+        /* Universal color reset for black text on white background */
+        * {
+          color: #000 !important;
+          background-color: transparent !important;
+          border-color: #ddd !important;
+        }
+
+        h1 { font-size: 24pt; }
+        h2 { font-size: 18pt; margin-top: 2rem; }
+        h3 { font-size: 14pt; }
+
+        /* Force the detailed calculations accordion to be open */
+        #calculation-details {
+          display: block !important;
+          max-height: none !important;
+          overflow: visible !important;
+        }
+        /* Remove padding/border from the accordion's inner wrapper */
+        #calculation-details > div {
+           padding: 0 !important;
+           border: none !important;
+        }
+
+        /* Layout results and data boxes */
+        .results-grid {
+          grid-template-columns: repeat(3, 1fr) !important;
+          gap: 1rem !important;
+        }
+        .result-card, .graph-container-wrapper, .p-3.bg-slate-800, .calculation-detail {
+           border: 1px solid #ccc !important;
+           box-shadow: none !important;
+           page-break-inside: avoid;
+        }
+
+        /* Make graphs print-friendly */
+        .graphs-grid {
+          grid-template-columns: 1fr !important; /* Stack graphs vertically */
+          gap: 2rem !important;
+          margin-top: 2rem;
+        }
+        .graph-container-wrapper svg path[stroke="#06b6d4"] {
+          stroke: #000 !important;
+          stroke-width: 2px !important;
+        }
+        .graph-container-wrapper svg .drop-shadow-\[0_1px_1px_rgba\(0\,0\,0\,0\.8\)\] {
+            text-shadow: none !important;
+        }
+        .graph-container-wrapper svg circle[fill="#f59e0b"] {
+          fill: white !important;
+          stroke: #000 !important;
+        }
+        /* Hide gradient fill which is bad for printing */
+        .graph-container-wrapper svg path[fill="url(#gradient)"] {
+          display: none;
+        }
+      }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+  }
+}
+</script>
+</head>
+  <body class="bg-slate-900">
+    <div id="root"></div>
+    <!-- Vite ще инжектира билднатия JavaScript тук -->
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
