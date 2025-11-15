@@ -1,40 +1,45 @@
-
 import React from 'react';
-import type { Results } from '../App';
-
-interface AccordionInputs {
-  load: string;
-  length: string;
-  modulus: string;
-  inertia: string;
-}
+import type { AllResults, AppInputs } from './LoadManager';
+import { loadCategories } from './LoadManager';
 
 interface CalculationsAccordionProps {
   isOpen: boolean;
   onToggle: () => void;
-  inputs: AccordionInputs;
-  results: Results | null;
+  inputs: AppInputs;
+  allResults: AllResults | null;
 }
 
-const CalculationDetail: React.FC<{ title: string; formula: React.ReactNode; substitution: React.ReactNode; result: React.ReactNode }> = ({ title, formula, substitution, result }) => (
-    <div className="p-3 bg-slate-800 rounded-md calculation-detail">
+const CalculationDetail: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className }) => (
+    <div className={`p-3 bg-slate-800 rounded-md calculation-detail ${className}`}>
         <h4 className="font-semibold text-cyan-400">{title}</h4>
-        <div className="mt-2 text-sm space-y-1 text-slate-300">
-            <p><span className="font-medium text-slate-400">Формула:</span> {formula}</p>
-            <p><span className="font-medium text-slate-400">Заместване:</span> {substitution}</p>
-            <p><span className="font-medium text-slate-400">Резултат:</span> <span className="font-bold text-white">{result}</span></p>
+        <div className="mt-2 text-sm space-y-2 text-slate-300">
+            {children}
         </div>
     </div>
 );
 
+const Formula: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+    <code className={`block text-xs bg-slate-900 p-2 rounded-md my-1 whitespace-pre-wrap break-all font-mono text-cyan-200 ${className}`}>
+        {children}
+    </code>
+);
 
-const CalculationsAccordion: React.FC<CalculationsAccordionProps> = ({ isOpen, onToggle, inputs, results }) => {
-    if (!results) return null;
+const EffectDetail: React.FC<{ title: string, formula: string, substitution: string, result: number, unit: string }> = ({title, formula, substitution, result, unit}) => (
+    <div className='p-2 bg-slate-900/70 rounded'>
+        <h5 className='font-semibold text-cyan-300 text-sm'>{title}</h5>
+        <p>Формула: <Formula>{formula}</Formula></p>
+        <p>Заместване: <Formula>{substitution}</Formula></p>
+        <p>Резултат: <span className="font-mono font-bold text-white">{result.toFixed(2)} {unit}</span></p>
+    </div>
+);
 
-    const { load, length, modulus, inertia } = inputs;
-    const { moment, shear, deflection_m } = results;
 
-    const w = parseFloat(load);
+const CalculationsAccordion: React.FC<CalculationsAccordionProps> = ({ isOpen, onToggle, inputs, allResults }) => {
+    if (!allResults) return null;
+
+    const { length, modulus, inertia } = inputs;
+    const { ulsCombinations, slsCombinations, envelope, individualLoadEffects } = allResults;
+
     const L = parseFloat(length);
     const E_GPa = parseFloat(modulus);
     const I_cm4 = parseFloat(inertia);
@@ -50,61 +55,74 @@ const CalculationsAccordion: React.FC<CalculationsAccordionProps> = ({ isOpen, o
                 aria-controls="calculation-details"
             >
                 <span>Детайлни изчисления</span>
-                <svg
-                    className={`w-6 h-6 transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
+                <svg className={`w-6 h-6 transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
-            <div
-                id="calculation-details"
-                className={`transition-all duration-500 ease-in-out ${isOpen ? 'max-h-screen' : 'max-h-0'}`}
-            >
+            <div id="calculation-details" className={`transition-all duration-500 ease-in-out ${isOpen ? 'max-h-[20000px]' : 'max-h-0'}`}>
                 <div className="p-4 border-t border-slate-700 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-3 bg-slate-800 rounded-md">
-                           <h3 className="font-semibold text-cyan-400 mb-2">Входни данни</h3>
-                           <ul className="text-sm space-y-1 text-slate-300">
-                                <li>Равномерно натоварване (w): <span className="font-mono text-white">{w}</span> kN/m</li>
-                                <li>Дължина на гредата (L): <span className="font-mono text-white">{L}</span> m</li>
-                                <li>Модул на еластичност (E): <span className="font-mono text-white">{E_GPa}</span> GPa</li>
-                                <li>Инерционен момент (I): <span className="font-mono text-white">{I_cm4}</span> cm⁴</li>
-                           </ul>
-                        </div>
-                        <div className="p-3 bg-slate-800 rounded-md">
-                           <h3 className="font-semibold text-cyan-400 mb-2">Преобразувани единици</h3>
-                           <ul className="text-sm space-y-1 text-slate-300">
-                                <li>E = <span className="font-mono text-white">{E_GPa}</span> GPa = <span className="font-mono text-white">{E_kNm2.toLocaleString('bg-BG')}</span> kN/m²</li>
-                                <li>I = <span className="font-mono text-white">{I_cm4}</span> cm⁴ = <span className="font-mono text-white">{I_m4.toExponential(2)}</span> m⁴</li>
-                           </ul>
+                    <div>
+                        <h3 className="text-xl font-semibold text-center mb-4 text-cyan-400">1. Ефекти от единични товари</h3>
+                        <div className="space-y-4">
+                            {individualLoadEffects.map((effect, index) => (
+                                <CalculationDetail key={effect.id} title={`Товар ${index + 1}: ${loadCategories[effect.category]}`}>
+                                    <p>Стойност: <span className='font-mono text-white'>{effect.value} {effect.type === 'uniform' ? 'kN/m' : `kN @ ${effect.position} m`}</span></p>
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-2">
+                                        <EffectDetail title="Огъващ момент (M)" {...effect.maxMoment} unit="kNm" />
+                                        <EffectDetail title="Срязваща сила (V)" {...effect.maxShear} unit="kN" />
+                                        <EffectDetail title="Провисване (δ)" {...effect.maxDeflection} unit="mm" />
+                                    </div>
+                                </CalculationDetail>
+                            ))}
                         </div>
                     </div>
-                    
-                    <div>
-                        <h3 className="text-xl font-semibold text-center mb-4 text-cyan-400">Формули и резултати</h3>
-                        <div className="space-y-4">
-                            <CalculationDetail 
-                                title="Макс. огъващ момент (Mₘₐₓ)"
-                                formula={<>Mₘₐₓ = (w · L²) / 8</>}
-                                substitution={<>Mₘₐₓ = ({w} · {L}²) / 8</>}
-                                result={<>{moment?.toFixed(3)} kNm</>}
-                            />
-                            <CalculationDetail 
-                                title="Макс. срязваща сила (Vₘₐₓ)"
-                                formula={<>Vₘₐₓ = (w · L) / 2</>}
-                                substitution={<>Vₘₐₓ = ({w} · {L}) / 2</>}
-                                result={<>{shear?.toFixed(3)} kN</>}
-                            />
-                            <CalculationDetail 
-                                title="Макс. провисване (δₘₐₓ)"
-                                formula={<>δₘₐₓ = (5 · w · L⁴) / (384 · E · I)</>}
-                                substitution={<>δₘₐₓ = (5 · {w} · {L}⁴) / (384 · {E_kNm2.toLocaleString('bg-BG')} · {I_m4.toExponential(2)})</>}
-                                result={<>{(deflection_m ?? 0).toExponential(3)} m = {(results.deflection ?? 0).toFixed(3)} mm</>}
-                            />
-                        </div>
+
+                    <div className="space-y-4">
+                        <h3 className="text-xl font-semibold text-center mb-4 text-cyan-400">2. Комбинации за носеща способност (ULS)</h3>
+                        {ulsCombinations.map((combo, index) => (
+                           <CalculationDetail key={index} title={`Комбинация ULS-${index + 1}`}>
+                               <p>Водещ променлив товар: <span className="font-bold text-white">{combo.leadingVariableCategory !== 'none' ? loadCategories[combo.leadingVariableCategory] : 'Няма'}</span></p>
+                               <p>Формула:</p>
+                               <Formula>{combo.formula}</Formula>
+                               <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-700/50">
+                                   <p>M_max = <span className="font-mono text-white">{combo.maxMoment.toFixed(2)} kNm</span></p>
+                                   <p>V_max = <span className="font-mono text-white">{combo.maxShear.toFixed(2)} kN</span></p>
+                               </div>
+                           </CalculationDetail>
+                        ))}
+                    </div>
+
+                    <div className="space-y-4">
+                        <h3 className="text-xl font-semibold text-center my-4 text-cyan-400">3. Комбинации за експлоатационна годност (SLS)</h3>
+                        {slsCombinations.map((combo, index) => (
+                            <CalculationDetail key={index} title={`Комбинация SLS-${index + 1}`}>
+                               <p>Водещ променлив товар: <span className="font-bold text-white">{combo.leadingVariableCategory !== 'none' ? loadCategories[combo.leadingVariableCategory] : 'Няма'}</span></p>
+                               <p>Формула:</p>
+                               <Formula>{combo.formula}</Formula>
+                               <div className="mt-2 pt-2 border-t border-slate-700/50">
+                                   <p>δ_max = <span className="font-mono text-white font-bold">{combo.maxDeflection.toFixed(2)} mm</span></p>
+                               </div>
+                            </CalculationDetail>
+                        ))}
+                    </div>
+
+                    <h3 className="text-xl font-semibold text-center my-4 text-cyan-400">Крайни резултати (Обвивка)</h3>
+                    <div className="p-3 bg-slate-800/50 rounded-md text-sm text-slate-300 text-center">
+                       Показаните по-долу стойности са абсолютните максимуми (обвивка) от всички изчислени по-горе комбинации.
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <CalculationDetail title="M_Ed,max">
+                            <p className="font-bold text-white text-lg">{envelope.moment.toFixed(2)} kNm</p>
+                            <p className="text-xs text-slate-400 mt-1">От: {envelope.momentDescription}</p>
+                        </CalculationDetail>
+                         <CalculationDetail title="V_Ed,max">
+                            <p className="font-bold text-white text-lg">{envelope.shear.toFixed(2)} kN</p>
+                            <p className="text-xs text-slate-400 mt-1">От: {envelope.shearDescription}</p>
+                        </CalculationDetail>
+                         <CalculationDetail title="δ_max">
+                            <p className="font-bold text-white text-lg">{envelope.deflection.toFixed(2)} mm</p>
+                            <p className="text-xs text-slate-400 mt-1">От: {envelope.deflectionDescription}</p>
+                        </CalculationDetail>
                     </div>
                 </div>
             </div>
